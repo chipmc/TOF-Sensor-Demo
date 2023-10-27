@@ -2,7 +2,7 @@
 #define TOFSENSOR_CONFIG_H
 
 /***   Mounting Parameters   ***/
-#define PERSON_THRESHOLD 12             // Signal must be PERSON_THRESHOLD kcps/SPAD above baseline to change occupancy
+#define PERSON_THRESHOLD 12             // Signal must be PERSON_THRESHOLD kcps/SPAD above or below baseline to change occupancy
 #define NUM_CALIBRATION_LOOPS 500           // How many samples are taken on calibration
 
 
