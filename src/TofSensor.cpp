@@ -110,7 +110,7 @@ int TofSensor::loop(){                         // This function will update the 
     #endif
 
     zoneSignalPerSpad[zone] = myTofSensor.getSignalPerSpad(); // - getAmbientPerSpad()??
-    bool occupied = (zoneSignalPerSpad[zone] >= (zoneBaselines[zone] + PERSON_THRESHOLD));
+    bool occupied = ((zoneSignalPerSpad[zone] >= (zoneBaselines[zone] + PERSON_THRESHOLD)) || (zoneSignalPerSpad[zone] <= (zoneBaselines[zone] - (PERSON_THRESHOLD))));
     occupancyState += occupied * (zone + 1);
   }
 

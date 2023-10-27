@@ -2,8 +2,8 @@
 #define TOFSENSOR_CONFIG_H
 
 /***   Mounting Parameters   ***/
-#define PERSON_THRESHOLD 20             // This counts folks of normal height walking through the door
-#define NUM_CALIBRATION_LOOPS 100           // How many samples do we buffer for each zone - minimum is 2
+#define PERSON_THRESHOLD 12             // Signal must be PERSON_THRESHOLD kcps/SPAD above or below baseline to change occupancy
+#define NUM_CALIBRATION_LOOPS 500           // How many samples are taken on calibration
 
 
 /***   Debugging   ***/
