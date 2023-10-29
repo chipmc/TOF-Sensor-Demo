@@ -1,7 +1,8 @@
 /*
   TOF Based Occupancy Counter - Demo Code
   By: Chip McClelland
-  May 2023
+      Alex Bowen
+  May 2023 - September 2023
   License: This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
 
   SparkFun labored with love to create the library used in this sketch. Feel like supporting open source hardware? 
@@ -21,6 +22,8 @@
 // v2.01 - First version for testing
 // v2.02 - Changing oritentation to match ST Micro example code
 // v2.03 - Added a buffer to find the minimum deistance in buffer set in the config file
+// v3.00 - Removed most logic in favor of a simple getSignalBySpad() approach.
+// v4.00 - Implemented the "magicalStateMap" algorithm, which replaced the FSM. Counts now change when sufficiently BELOW baseline. Helps detect black.
 
 #include <Wire.h>
 #include "ErrorCodes.h"
@@ -37,7 +40,7 @@ SYSTEM_THREAD(ENABLED);
 const int shutdownPin = D2;                       // Pin to shut down the device - active low
 const int intPin =      D3;                       // Hardware interrupt - poliarity set in the library
 const int blueLED =     D7;
-char statusMsg[64] = "Startup Complete.  Running version 3.0";
+char statusMsg[64] = "Startup Complete.  Running version 4.0";
 
 void setup(void)
 {
@@ -55,7 +58,6 @@ void setup(void)
 
   TofSensor::instance().setup();
   PeopleCounter::instance().setup();
-  PeopleCounter::instance().setCount(1);
 
   Log.info(statusMsg);
 

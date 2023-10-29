@@ -14,8 +14,9 @@
 #include "TofSensor.h"
 
 uint8_t opticalCenters[2] = {FRONT_ZONE_CENTER,BACK_ZONE_CENTER}; 
-int zoneSignalPerSpad[2] = {0,0};
+int zoneSignalPerSpad[2][3] = {{0, 0, 0},{0, 0, 0}};
 int zoneBaselines[2] = {0,0};
+int lastSignal[2] = {0,0};
 int occupancyState = 0;      // This is the current occupancy state (occupied or not, zone 1 (ones) and zone 2 (twos))
 
 TofSensor *TofSensor::_instance;
@@ -65,37 +66,37 @@ void TofSensor::setup(){
 }
 
 bool TofSensor::performCalibration() {
-  for (int i=1; i<NUM_CALIBRATION_LOOPS; i++) {
-    TofSensor::loop();                  // Get the latest values
-    zoneBaselines[0] += TofSensor::getZone1();
-    zoneBaselines[1] += TofSensor::getZone2();
+  for (int i=0; i<NUM_CALIBRATION_LOOPS; i++) {
+    TofSensor::loop(); 
+    int zonevalue1 = TofSensor::getZone1();                                         // Get the latest values
+    int zonevalue2 = TofSensor::getZone2();
+    zoneBaselines[0] += zonevalue1;
+    zoneBaselines[1] += zonevalue2;
+    if (TofSensor::getZone1() >= zonevalue1 + PERSON_THRESHOLD || TofSensor::getZone2() >= zonevalue2 + PERSON_THRESHOLD){
+      Log.info("Target zone not clear - will wait 5 seconds and try again");
+      delay(5000);
+      TofSensor::loop();
+      if (TofSensor::getZone1() >= zonevalue1 + PERSON_THRESHOLD || TofSensor::getZone2() >= zonevalue2 + PERSON_THRESHOLD) return FALSE;
+    }
   }
   zoneBaselines[0] = zoneBaselines[0]/NUM_CALIBRATION_LOOPS;
   zoneBaselines[1] = zoneBaselines[1]/NUM_CALIBRATION_LOOPS;
-
-  if (occupancyState != 0){
-    Log.info("Target zone not clear - will wait ten seconds and try again");
-    delay(10000);
-    TofSensor::loop();
-    if (occupancyState != 0) return FALSE;
-  }
   Log.info("Target zone is clear with zone1 at %ikcps/SPAD and zone2 at %ikcps/SPAD",zoneBaselines[0],zoneBaselines[1]);
   return TRUE;
 }
 
 int TofSensor::loop(){                         // This function will update the current distance / occupancy for each zone.  It will return true if occupancy changes                    
-  int oldOccupancyState = occupancyState;
+  byte ready = 0;
   occupancyState = 0;
-
   unsigned long startedRanging;
 
-  for (byte zone = 0; zone < 2; zone++){
+  for (byte samples = 0; samples < 6; samples++){
+    int zone = samples % 2;
     myTofSensor.stopRanging();
     myTofSensor.clearInterrupt();
     myTofSensor.setROI(ROWS_OF_SPADS,COLUMNS_OF_SPADS,opticalCenters[zone]);
     delay(1);
     myTofSensor.startRanging();
-
     startedRanging = millis();
     while(!myTofSensor.checkForDataReady()) {
       if (millis() - startedRanging > SENSOR_TIMEOUT) {
@@ -103,30 +104,29 @@ int TofSensor::loop(){                         // This function will update the 
         return SENSOR_TIMEOUT_ERROR;
       }
     }
-
+    lastSignal[zone] = myTofSensor.getSignalPerSpad();
     #if DEBUG_COUNTER
-    Log.info("Zone%d (%dx%d %d SPADs with optical center %d) = %ikcps/SPAD. Signal/SPAD: %d Ambient/SPAD: %d",zone+1,myTofSensor.getROIX(), myTofSensor.getROIY(), myTofSensor.getSpadNb(),opticalCenters[zone],zoneSignalPerSpad[zone],myTofSensor.getSignalPerSpad(), myTofSensor.getAmbientPerSpad());
-    delay(500);
+    Log.info("Zone%d (%dx%d %d SPADs with optical center %d) = %ikcps/SPAD. Signal/SPAD: %d Ambient/SPAD: %d",zone+1,myTofSensor.getROIX(), myTofSensor.getROIY(), myTofSensor.getSpadNb(),opticalCenters[zone],lastSignal[zone],myTofSensor.getSignalPerSpad(), myTofSensor.getAmbientPerSpad());
     #endif
-
-    zoneSignalPerSpad[zone] = myTofSensor.getSignalPerSpad(); // - getAmbientPerSpad()??
-    bool occupied = (zoneSignalPerSpad[zone] >= (zoneBaselines[zone] + PERSON_THRESHOLD));
-    occupancyState += occupied * (zone + 1);
+    zoneSignalPerSpad[zone][samples % 3] = lastSignal[zone];
   }
+  occupancyState += ((zoneSignalPerSpad[0][0] >= (zoneBaselines[0] + PERSON_THRESHOLD) && zoneSignalPerSpad[0][1] >= (zoneBaselines[0] + PERSON_THRESHOLD) && zoneSignalPerSpad[0][2] >= (zoneBaselines[0] + PERSON_THRESHOLD))
+                    || (zoneSignalPerSpad[0][0] <= (zoneBaselines[0] - PERSON_THRESHOLD) || zoneSignalPerSpad[0][1] <= (zoneBaselines[0] - PERSON_THRESHOLD) || zoneSignalPerSpad[0][2] <= (zoneBaselines[0] - PERSON_THRESHOLD))) ? 1 : 0;
+  
+  occupancyState += ((zoneSignalPerSpad[1][0] >= (zoneBaselines[1] + PERSON_THRESHOLD) && zoneSignalPerSpad[1][1] >= (zoneBaselines[0] + PERSON_THRESHOLD) && zoneSignalPerSpad[1][2] >= (zoneBaselines[0] + PERSON_THRESHOLD))
+                    || (zoneSignalPerSpad[1][0] <= (zoneBaselines[1] - PERSON_THRESHOLD) || zoneSignalPerSpad[1][1] <= (zoneBaselines[1] - PERSON_THRESHOLD) || zoneSignalPerSpad[1][2] <= (zoneBaselines[1] - PERSON_THRESHOLD))) ? 2 : 0;
+  
+  ready = 1;
 
-  #if PEOPLECOUNTER_DEBUG
-  if (occupancyState != oldOccupancyState) Log.info("Occupancy state changed from %d to %d (%ikcps/SPAD / %ikcps/SPAD)", oldOccupancyState, occupancyState, zoneSignalPerSpad[0], zoneSignalPerSpad[1]);
-  #endif
-
-  return (occupancyState != oldOccupancyState);     // Let us know if the occupancy state has changed
+  return (ready);     // Let us know if the occupancy state has progressed in the algorithm.
 }
 
 int TofSensor::getZone1() {
-  return zoneSignalPerSpad[0];
+  return lastSignal[0];
 }
 
 int TofSensor::getZone2() {
-  return zoneSignalPerSpad[1];
+  return lastSignal[1];
 }
 
 int TofSensor::getOccupancyState() {

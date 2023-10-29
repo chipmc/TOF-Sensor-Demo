@@ -2,8 +2,8 @@
 #define TOFSENSOR_CONFIG_H
 
 /***   Mounting Parameters   ***/
-#define PERSON_THRESHOLD 20             // This counts folks of normal height walking through the door
-#define NUM_CALIBRATION_LOOPS 100           // How many samples do we buffer for each zone - minimum is 2
+#define PERSON_THRESHOLD 13                        // Readings that are PERSON_THRESHOLD above (or below) the baseline will trigger an occupancy change
+#define NUM_CALIBRATION_LOOPS 20                   // How many samples to take during calibration.
 
 
 /***   Debugging   ***/
@@ -15,7 +15,7 @@
 #define ROWS_OF_SPADS    6                         // This is the depth (Through the door - when sensor mounted on the inside doorframe)
 
 // Will focus on the SPAD array of 6 rows and 8 columns
-#define FRONT_ZONE_CENTER     159
+#define FRONT_ZONE_CENTER     175
 #define BACK_ZONE_CENTER      239
 
 
