@@ -40,25 +40,50 @@ public:
 
     /**
      * @brief Perform application loop operations; call this from global application loop()
-     * This function will test for any change in occupancy in zone1 or zone2 and return true or false if there is a change
+     * This function will test for any change in occupancy in zone1 or zone2 and return true if finished
+     * without error. Returns various error codes if something goes wrong during the loop.
      * 
-     * You typically use TofSensor::instance().update();
+     * @details Calls TofSensor::instance().measure() and changes the occupancy state if 
+     * 
+     * You typically use TofSensor::instance().loop();
      */
     int loop();
 
     /**
-     * @brief These functions will return the current distance measurement in mm for each of the zones.
+     * @brief Takes 2 consecutive and alternating measurements of signal strength for both SPAD optical zones and
+     * stores them in a 2D array.
+     * 
+     * You typically use TofSensor::instance().measure();
+     */
+    int measure();
+
+    /**
+     * @brief These functions will return the last signal strength measurement in kcps/SPAD for each of the zones.
      * 
      * These functions do not trigger an update, they simply return the current value
     */
     int getZone1();
 
     /**
-     * @brief These functions will return the current distance measurement in mm for each of the zones.
+     * @brief These functions will return the last signal strength measurement in kcps/SPAD for each of the zones.
      * 
      * These functions do not trigger an update, they simply return the current value
     */
     int getZone2();
+
+     /**
+     * @brief These functions will return the ambient signal in in kcps/SPAD for each of the zones.
+     * 
+     * These functions do not trigger an update, they simply return the current value
+    */
+    int getZone1Ambient();
+
+    /**
+     * @brief These functions will return the ambient signal in in kcps/SPAD for each of the zones.
+     * 
+     * These functions do not trigger an update, they simply return the current value
+    */
+    int getZone2Ambient();
 
     /**
      * @brief Function to return the current occupancy state
@@ -71,6 +96,7 @@ public:
     /**
      * @brief This function is called as part of the startup process to ensure the sensor does not see any obstructions
      * 
+     * @details Stores the maximum and minimum signal strengths, designated as the "baseline" range, for each spad.
      * Protected as this should only be called from the TofSensor setup process.
      * 
     */
