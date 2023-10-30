@@ -2,7 +2,6 @@
 #define TOFSENSOR_CONFIG_H
 
 /***   Mounting Parameters   ***/
-#define PERSON_THRESHOLD 11                        // Readings that are PERSON_THRESHOLD above (or below) the baseline will trigger an occupancy change
 #define NUM_CALIBRATION_LOOPS 5                   // How many samples to take during calibration.
 
 
