@@ -57,33 +57,62 @@ public:
      */
     int measure();
 
+     /**
+     * @brief Takes 1 measurements of signal strength for the detection optical zone.
+     * 
+     * You typically use TofSensor::instance().detect();
+     */
+    int detect();
+
     /**
-     * @brief These functions will return the last signal strength measurement in kcps/SPAD for each of the zones.
+     * @brief Returns the current detection mode.
+    */
+    int getDetectionMode();
+
+    /**
+     * @brief Sets the detection mode. If detectionMode > 0, we use the detection Zone
+    */
+    void setDetectionMode(int mode);
+
+    /**
+     * @brief These functions will return the ambient signal in in kcps/SPAD for each of the zones.
      * 
      * These functions do not trigger an update, they simply return the current value
     */
-    int getZone1();
+    int getDetectionZone();
+
+    /**
+     * @brief Function to return the current detection state
+    */
+    int getDetectionState();
 
     /**
      * @brief These functions will return the last signal strength measurement in kcps/SPAD for each of the zones.
      * 
      * These functions do not trigger an update, they simply return the current value
     */
-    int getZone2();
+    int getOccupancyZone1();
+
+    /**
+     * @brief These functions will return the last signal strength measurement in kcps/SPAD for each of the zones.
+     * 
+     * These functions do not trigger an update, they simply return the current value
+    */
+    int getOccupancyZone2();
 
      /**
      * @brief These functions will return the ambient signal in in kcps/SPAD for each of the zones.
      * 
      * These functions do not trigger an update, they simply return the current value
     */
-    int getZone1Ambient();
+    int getOccupancyZone1Ambient();
 
     /**
      * @brief These functions will return the ambient signal in in kcps/SPAD for each of the zones.
      * 
      * These functions do not trigger an update, they simply return the current value
     */
-    int getZone2Ambient();
+    int getOccupancyZone2Ambient();
 
     /**
      * @brief Function to return the current occupancy state
@@ -100,7 +129,16 @@ public:
      * Protected as this should only be called from the TofSensor setup process.
      * 
     */
-    bool performCalibration();
+    bool performOccupancyCalibration();
+
+    /**
+     * @brief This function is called as part of the startup process to ensure the sensor does not see any obstructions
+     * 
+     * @details Stores the maximum and minimum signal strengths, designated as the "baseline" range, for each spad.
+     * Protected as this should only be called from the TofSensor setup process.
+     * 
+    */
+    bool performDetectionCalibration();
 
 
 protected:
