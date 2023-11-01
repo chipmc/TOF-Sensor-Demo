@@ -24,6 +24,7 @@
 // v2.03 - Added a buffer to find the minimum deistance in buffer set in the config file
 // v3.00 - Removed most logic in favor of a simple getSignalBySpad() approach.
 // v4.00 - Implemented the "magicalStateMap" algorithm, which replaced the FSM. Counts now change when sufficiently BELOW baseline. Helps detect black.
+// v5.00 - Added Interrupt to put device to sleep when not detecting a person. Made occupancyZone as small as it would go. Added "DetectionZone", consisting of all 16x16 spads.
 
 #include <Wire.h>
 #include "ErrorCodes.h"
@@ -33,14 +34,22 @@
 // Enable logging as we ware looking at messages that will be off-line - need to connect to serial terminal
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
+SystemSleepConfiguration config;            // Initialize new Sleep 2.0 Api
+
 SYSTEM_MODE(MANUAL);
 SYSTEM_THREAD(ENABLED);
 
 //Optional interrupt and shutdown pins.
-const int shutdownPin = D2;                       // Pin to shut down the device - active low
-const int intPin =      D3;                       // Hardware interrupt - poliarity set in the library
+const int shutdownPin = D2;                 // Pin to shut down the device - active low
+const int intPin =      D3;                 // Hardware interrupt - poliarity set in the library
 const int blueLED =     D7;
-char statusMsg[64] = "Startup Complete.  Running version 4.0";
+char statusMsg[64] = "Startup Complete.  Running version 5.0";
+
+#define SLEEP_TIMER_THRESHOLD   85        // Time to wait after detection before recalibrating and sleeping. Just above the length of time of 1 measure() to potentially 'magicalStateMap' fix the stack
+
+void detectionISR(){
+  TofSensor::instance().setDetectionMode(1);
+}
 
 void setup(void)
 {
@@ -61,10 +70,13 @@ void setup(void)
 
   Log.info(statusMsg);
 
-  digitalWrite(blueLED, LOW);                   // Signal setup complete
+  attachInterrupt(intPin, detectionISR, RISING);
+
+  digitalWrite(blueLED, LOW);               // Signal setup complete
 }
 
 unsigned long lastLedUpdate = 0;
+unsigned long lastDetection = 0;
 
 void loop(void)
 {
@@ -73,7 +85,29 @@ void loop(void)
     lastLedUpdate = millis();
   }
 
-  if (TofSensor::instance().loop()) {         // If there is new data from the sensor
-    PeopleCounter::instance().loop();         // Then check to see if we need to update the counts
+  switch(TofSensor::instance().getDetectionMode()){ // Switch based on what mode we're in
+    case 0:                                         // If we are in occupancy mode ... 
+        if (TofSensor::instance().loop()) {             // ... and there is new data from the sensor ...
+          PeopleCounter::instance().loop();                 // ... then check to see if we need to update the counts.
+        }
+        if((millis() - lastDetection) > SLEEP_TIMER_THRESHOLD && TofSensor::instance().getOccupancyState() == 0){  // If it has been long enough since we woke up AND noone is under us currently ...
+          TofSensor::instance().setDetectionMode(1);            // ... set the device back to detection mode ...
+          TofSensor::instance().performDetectionCalibration();  // ... recalibrate the detection zone's baseline range ...
+          TofSensor::instance().performOccupancyCalibration();  // ... recalibrate the occupancy zones' baseline ranges ... [!] NEED TO TEST IF IT IS OK TO DO HERE [!]
+          detachInterrupt(intPin);                              // ... clear the interrupt ...
+          attachInterrupt(intPin, detectionISR, RISING);        // ... attach a new interrupt ...
+          config.mode(SystemSleepMode::ULTRA_LOW_POWER);        // ... configure our slumber ...
+          SystemSleepResult result = System.sleep(config);      // ... then put the device to sleep.
+          Log.info("********************** Device Going to Sleep **********************");
+        }
+      break;
+    case 1:                                         // If we are in detection mode
+      if(TofSensor::instance().loop()) {                // ... and there is new data from the sensor ...
+        if(TofSensor::instance().getDetectionState() != 0){ // ... and that data tells us a detection has been made ...
+          TofSensor::instance().setDetectionMode(0);            // ... then quickly set to occupancy mode.
+        }
+        detachInterrupt(intPin);                            // Detach the interrupt.
+      }
+      break;
   }
 }

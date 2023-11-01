@@ -2,21 +2,25 @@
 #define TOFSENSOR_CONFIG_H
 
 /***   Mounting Parameters   ***/
-#define PERSON_THRESHOLD 13                        // Readings that are PERSON_THRESHOLD above (or below) the baseline will trigger an occupancy change
-#define NUM_CALIBRATION_LOOPS 20                   // How many samples to take during calibration.
-
+#define NUM_DETECTION_CALIBRATION_LOOPS 50                   // How many samples to take during detection calibration.
+#define NUM_OCCUPANCY_CALIBRATION_LOOPS 15                   // How many samples to take during occupancy calibration.
 
 /***   Debugging   ***/
 #define DEBUG_COUNTER 0
 #define SENSOR_TIMEOUT 500
 
-// Detection zone dimensions and optical centers
-#define COLUMNS_OF_SPADS 8                         // This is the width (accross the door with the sensor long axis perpendicular to the threshold) of the active SPADS
-#define ROWS_OF_SPADS    6                         // This is the depth (Through the door - when sensor mounted on the inside doorframe)
+// Occupancy zone dimensions and optical centers
+#define OCCUPANCY_COLUMNS_OF_SPADS      4                    // This is the width (accross the door with the sensor long axis perpendicular to the threshold) of the active SPADS
+#define OCCUPANCY_ROWS_OF_SPADS         4                    // This is the depth (Through the door - when sensor mounted on the inside doorframe)
 
-// Will focus on the SPAD array of 6 rows and 8 columns
-#define FRONT_ZONE_CENTER     175
-#define BACK_ZONE_CENTER      239
+// Will focus on the SPAD array of 4 rows and 4 columns
+#define OCCUPANCY_FRONT_ZONE_CENTER     167
+#define OCCUPANCY_BACK_ZONE_CENTER      231
+
+// Will focus on the entire spad array when detecting
+#define DETECTION_COLUMNS_OF_SPADS      16                        
+#define DETECTION_ROWS_OF_SPADS         16                        
+#define DETECTION_ZONE_CENTER           199
 
 
 
