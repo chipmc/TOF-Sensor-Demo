@@ -93,11 +93,10 @@ bool TofSensor::performOccupancyCalibration() {
   #endif
   while (occupancyState != 0){
     Log.info("Occupancy zone not clear - try again");
-    delay(80);
+    delay(20);
     TofSensor::loop();
   }
-  //make sure we have a bit of room at the bottom of the range for black hair
-  if(occupancyBaselines[0][0] < 5) occupancyBaselines[0][0] = 5;
+  if(occupancyBaselines[0][0] < 5) occupancyBaselines[0][0] = 5;   // Make sure we have a bit of room at the bottom of the range for black hair
   if(occupancyBaselines[1][0] < 5) occupancyBaselines[1][0] = 5;
 
   Log.info("Target zone is clear with zone1 range at {MIN: %ikcps/SPAD, MAX: %ikcps/SPAD} and zone2 range at {MIN: %ikcps/SPAD, MAX: %ikcps/SPAD}",occupancyBaselines[0][0],occupancyBaselines[0][1],occupancyBaselines[1][0],occupancyBaselines[1][1]);
@@ -110,16 +109,17 @@ bool TofSensor::performDetectionCalibration() {
   detectionBaselines[1] = lastDetectionSignal; 
   for (int i=0; i<NUM_DETECTION_CALIBRATION_LOOPS; i++) {       // Loop through a set number of times ... 
     TofSensor::detect();
-    if(lastDetectionSignal < detectionBaselines[0]) detectionBaselines[0]= lastDetectionSignal;    // ... and update the min and max readings each time.
+    if(lastDetectionSignal < detectionBaselines[0]) detectionBaselines[0] = lastDetectionSignal;    // ... and update the min and max readings each time.
     if(lastDetectionSignal > detectionBaselines[1]) detectionBaselines[1] = lastDetectionSignal;
   }
   while (detectionState != 0){
     Log.info("Detection zone not clear - try again");
-    delay(80);
+    delay(20);
     TofSensor::loop();
   }
-  detectionBaselines[0] -= 5;
-  detectionBaselines[0] += 5;
+  detectionBaselines[0] -= 3;                               
+  detectionBaselines[1] += 3;
+  if(detectionBaselines[0] < 8) detectionBaselines[0] = 8;   // Make sure we have a bit of room at the bottom of the range for black hair. TODO:: MAYBE MAKE SPADS SMALLER OR USE DISTANCE
 
   Log.info("Detection zone is clear with range {MIN: %ikcps/SPAD, MAX: %ikcps/SPAD} ",detectionBaselines[0],detectionBaselines[1]);
   return TRUE;

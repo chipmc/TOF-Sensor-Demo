@@ -33,8 +33,8 @@
 
 // Enable logging as we ware looking at messages that will be off-line - need to connect to serial terminal
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
-// Initialize new Sleep 2.0 Api
-SystemSleepConfiguration config;
+
+SystemSleepConfiguration config;            // Initialize new Sleep 2.0 Api
 
 SYSTEM_MODE(MANUAL);
 SYSTEM_THREAD(ENABLED);
@@ -44,6 +44,8 @@ const int shutdownPin = D2;                 // Pin to shut down the device - act
 const int intPin =      D3;                 // Hardware interrupt - poliarity set in the library
 const int blueLED =     D7;
 char statusMsg[64] = "Startup Complete.  Running version 5.0";
+
+#define SLEEP_TIMER_THRESHOLD   85        // Time to wait after detection before recalibrating and sleeping. Just above the length of time of 1 measure() to potentially 'magicalStateMap' fix the stack
 
 void detectionISR(){
   TofSensor::instance().setDetectionMode(1);
@@ -88,7 +90,7 @@ void loop(void)
         if (TofSensor::instance().loop()) {             // ... and there is new data from the sensor ...
           PeopleCounter::instance().loop();                 // ... then check to see if we need to update the counts.
         }
-        if(TofSensor::instance().getOccupancyState() == 0){  // If it has been long enough since we woke up AND noone is under us currently ...
+        if((millis() - lastDetection) > SLEEP_TIMER_THRESHOLD && TofSensor::instance().getOccupancyState() == 0){  // If it has been long enough since we woke up AND noone is under us currently ...
           TofSensor::instance().setDetectionMode(1);            // ... set the device back to detection mode ...
           TofSensor::instance().performDetectionCalibration();  // ... recalibrate the detection zone's baseline range ...
           TofSensor::instance().performOccupancyCalibration();  // ... recalibrate the occupancy zones' baseline ranges ... [!] NEED TO TEST IF IT IS OK TO DO HERE [!]
@@ -96,7 +98,7 @@ void loop(void)
           attachInterrupt(intPin, detectionISR, RISING);        // ... attach a new interrupt ...
           config.mode(SystemSleepMode::ULTRA_LOW_POWER);        // ... configure our slumber ...
           SystemSleepResult result = System.sleep(config);      // ... then put the device to sleep.
-          Log.info("Person Detected. Device Going to Sleep.");
+          Log.info("********************** Device Going to Sleep **********************");
         }
       break;
     case 1:                                         // If we are in detection mode

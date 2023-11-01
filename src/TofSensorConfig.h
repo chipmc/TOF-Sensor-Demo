@@ -3,7 +3,7 @@
 
 /***   Mounting Parameters   ***/
 #define NUM_DETECTION_CALIBRATION_LOOPS 50                   // How many samples to take during detection calibration.
-#define NUM_OCCUPANCY_CALIBRATION_LOOPS 20                   // How many samples to take during occupancy calibration.
+#define NUM_OCCUPANCY_CALIBRATION_LOOPS 15                   // How many samples to take during occupancy calibration.
 
 /***   Debugging   ***/
 #define DEBUG_COUNTER 0
